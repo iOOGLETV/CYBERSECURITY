@@ -1,0 +1,168 @@
+Part A
+1) List all Customers (no and name only) from
+these zip codes: 33553, 33336, 33146 (use the list approach, not OR)
+
+SQL> select customer_num, customer_name
+  2  from customer
+  3  where zip in (33553, 33336, 33146); 
+
+CUS CUSTOMER_NAME
+--- -----------------------------------
+148 Al's Appliance and Sport
+356 Ferguson's
+524 Kline's
+608 Johnson's Department Store
+725 Deerfield's Four Seasons
+
+2)List all Orders (O# and date) where a HW class item is ordered
+
+SQL> select o.order_num, order_date
+  2  from orders o join order_line ol
+  3  on o.order_num = ol.order_num
+  4  join part p
+  5  on ol.part_num = p.part_num
+  6  where p.class = 'HW';
+
+ORDER ORDER_DAT
+----- ---------
+21608 20-OCT-10
+
+3) How many customers are there in each zip code?
+
+SQL> select zip, count(*) as NumbersOfCustomers 
+  2  from customer
+  3  group by zip 
+  4  order by zip;
+
+ZIP   NUMBERSOFCUSTOMERS
+----- ------------------
+32543                  1
+33146                  1
+33321                  3
+33336                  2
+33503                  1
+33553                  2
+
+6 rows selected.
+
+4) Report Customer No, Name, and respective agent no, agent last name
+and commission rate.
+
+SQL> select customer_num, customer_name, r.rep_num, last_name, rate
+  2  from customer c join rep r
+  3  on c.rep_num = r.rep_num;
+
+CUS CUSTOMER_NAME                       RE LAST_NAME             RATE
+--- ----------------------------------- -- --------------- ----------
+148 Al's Appliance and Sport            20 Kaiser                 .05
+842 All Season                          20 Kaiser                 .05
+524 Kline's                             20 Kaiser                 .05
+725 Deerfield's Four Seasons            35 Hull                   .07
+687 Lee's Sport and Appliance           35 Hull                   .07
+408 The Everything Shop                 35 Hull                   .07
+282 Brookings Direct                    35 Hull                   .07
+608 Johnson's Department Store          65 Perez                  .05
+356 Ferguson's                          65 Perez                  .05
+462 Bargains Galore                     65 Perez                  .05
+
+10 rows selected.
+
+5) Create a view called Total_sales, which show each customer and 
+total_value of orders placed by it. Now report the customer no and name
+for the customer and total_value for the customer who placed the highest
+total_value of orders. Name the total orders value for a customer as total_value.
+Show the view with all customers, as well as the report with the details of the
+top customer.
+
+SQL> create view Total_values as
+  2  select c.customer_num, customer_name, sum(quoted_price*num_ordered) as total_value
+  3  from customer c join orders o
+  4  on c.customer_num = o.customer_num
+  5  join order_line ol
+  6  on ol.order_num = o.order_num
+  7  group by c.customer_num, customer_name
+  8  order by total_value;
+
+View created.
+
+SQL> select * from total_values;
+
+CUS CUSTOMER_NAME                       TOTAL_VALUE
+--- ----------------------------------- -----------
+148 Al's Appliance and Sport                 736.45
+356 Ferguson's                               894.99
+282 Brookings Direct                           1190
+408 The Everything Shop                      1319.8
+608 Johnson's Department Store               4769.9
+
+SQL> select *
+  2  from total_values
+  3  where total_value = (select max(total_value) from total_values);
+
+CUS CUSTOMER_NAME                       TOTAL_VALUE
+--- ----------------------------------- -----------
+608 Johnson's Department Store               4769.9
+
+6) In SP table, report the total target and total sales and total_shortfall
+for each zone. Optional: look up (a horizontal acting) Oracle function greatest
+(on google), use it in a query to report SPNUM, Zone, target, sales, shortfall
+(setting the shortfall amount to zero if its negative-through parameters(shortfall,0))
+Here, zero will be greater if the shortfall is negative, therefore, the function
+will report zero.
+
+SQL> select zone, sum(target) as total_target, sum(sales) as total_sales, sum(target-sales) as total_shortfall
+  2  from sptable
+  3  group by zone
+  4  ;             
+
+      ZONE TOTAL_TARGET TOTAL_SALES TOTAL_SHORTFALL
+---------- ------------ ----------- ---------------
+         1          500         590             -90
+         2         1400        1050             350
+
+SQL> select spnum, zone, target, sales, greatest((target-sales),0) as shortfall
+  2  from sptable;
+
+     SPNUM       ZONE     TARGET      SALES  SHORTFALL
+---------- ---------- ---------- ---------- ----------
+         1          1        100         90         10
+         2          2        200        150         50
+         3          1        400        500          0
+         4          2        900        700        200
+         5          2        300        200        100
+
+
+Part B
+1) Permit joshi to update your employee table. Allow select to All
+on your inventory table.
+
+GRANT UPDATE ON EMPLOYEE TO JOSHI;
+GRANT SELECT ON INVENTORY TO PUBLIC;
+
+2) Add a character type column ZIP with 5 character positions to
+Employee table
+
+ALTER TABLE EMPLOYEE ADD ZIP CHAR(5);
+
+3) Now change the width of ZIP to 10 characters in Employee.
+
+ALTER TABLE EMPLOYEE MODIFY ZIP CHAR(10);
+
+4) Create an Index on the primary key of Order_line table.
+Create another index on the Num_Ordered in the same table.
+
+CREATE INDEX ORDERPART ON ORDER_LINE(ORDER_NUM, PART_NUM);
+CREATE INDEX NUMORDERED ON ORDER_LINE(NUM_ORDERED);
+
+5) Increase Num_Ordered in Order_line table for all HW class
+parts by 20%.
+
+UPDATE ORDER_LINE
+SET NUM_ORDERED = NUM_ORDERED * 1.20
+WHERE PART_NUM IN (SELECT PART_NUM
+		   FROM PART
+		   WHERE CLASS = 'HW');
+
+6) Delete representative with REP_NUM 65.
+
+DELETE FROM REP WHERE REP_NUM = 65;
